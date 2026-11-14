@@ -4,7 +4,7 @@
    PURPOSE  : Put numbers on the drop (how big?) and on each segment's share of it
               (who contributed how much?). The device and country queries are in
               03_segmentation.sql; this file adds the headline numbers and the
-              language and company cuts, then summarises all of them.
+              language, company, phone-model and tenure cuts, then summarises all of them.
    DIALECT  : PostgreSQL
 
    HOW "BEFORE" AND "AFTER" ARE DEFINED (my choice, state it in the write-up)
@@ -143,6 +143,191 @@ ORDER BY company_id;
 */
 
 
+/* -----------------------------------------------------------------------------
+   E4. Phone models: is the mobile drop in one platform?
+   Hypothesis : if one app or OS broke, the loss would sit in one model family
+   Grain      : one row per week; each column is distinct engaged users on that model
+   Note       : columns are the 9 phone models; total_users_that_week counts all engaged
+                users on any device, so the model columns do not add up to it
+   ----------------------------------------------------------------------------- */
+
+-- device mobile type segmentation
+select * from events_with_device_type;
+
+select distinct device from events_with_device_type
+where device_type='phone';
+
+select date_trunc('week', occurred_at):: date as week_start,
+count(distinct user_id) as total_users_that_week,
+count(distinct case when device='amazon fire phone' then user_id end ) as total_amazon_fire_phone_users,
+COUNT(DISTINCT CASE
+    WHEN device = 'htc one'
+    THEN user_id
+END) AS total_htc_one_users,
+COUNT(DISTINCT CASE
+    WHEN device = 'iphone 4s'
+    THEN user_id
+END) AS total_iphone_4s_users,
+COUNT(DISTINCT CASE
+    WHEN device = 'iphone 5'
+    THEN user_id
+END) AS total_iphone_5_users,
+COUNT(DISTINCT CASE
+    WHEN device = 'iphone 5s'
+    THEN user_id
+END) AS total_iphone_5s_users,
+COUNT(DISTINCT CASE
+    WHEN device = 'nexus 5'
+    THEN user_id
+END) AS total_nexus_5_users,
+COUNT(DISTINCT CASE
+    WHEN device = 'nokia lumia 635'
+    THEN user_id
+END) AS total_nokia_lumia_635_users,
+COUNT(DISTINCT CASE
+    WHEN device = 'samsung galaxy note'
+    THEN user_id
+END) AS total_samsung_galaxy_note_users,
+COUNT(DISTINCT CASE
+    WHEN device = 'samsung galaxy s4'
+    THEN user_id
+END) AS total_samsung_galaxy_s4_users
+from events_with_device_type
+where event_type='engagement'
+and occurred_at>='2014-04-28' and occurred_at<'2014-09-01'
+group by 1;
+
+/*
+   Result: avg weekly engaged users, 4 weeks before (7-28 Jul) -> 4 weeks after (4-25 Aug)
+     iphone 5               151 -> 114   -24.5%
+     samsung galaxy s4      115 ->  87   -24.1%
+     iphone 5s               91 ->  68   -25.0%
+     iphone 4s               63 ->  43   -31.6%
+     nexus 5                 82 ->  67   -18.0%
+     htc one                 29 ->  19   -34.5%
+     nokia lumia 635         35 ->  25   -28.6%
+     samsung galaxy note     14 ->  13    -7.1%   (tiny counts)
+     amazon fire phone       10 ->  13   +27.5%   (tiny counts)
+   Reading: the big models all fall by roughly 18% to 35%, on iOS, Android and Windows
+   Phone alike. The drop is not isolated to one phone family or operating system, which
+   argues against a single-app bug and points to something common to mobile use. A user
+   can use more than one phone model, so the rows are not fully independent.
+*/
+
+
+/* -----------------------------------------------------------------------------
+   E5. Tenure: before vs after, new vs older users
+   Definition : an engagement event is "new" if it happened within 28 days of the user's
+                created_at, otherwise "older" (the label belongs to the event, so one
+                user can count in both groups in a week)
+   ----------------------------------------------------------------------------- */
+
+-- E5a. As originally run
+WITH tenure_weekly AS (
+    SELECT
+        DATE_TRUNC('week', e.occurred_at)::date AS week,
+        CASE
+            WHEN e.occurred_at <= u.created_at + INTERVAL '28 days'
+            THEN 'new'
+            ELSE 'older'
+        END AS tenure,
+        COUNT(DISTINCT e.user_id) AS total_users
+    FROM events e
+    JOIN users u
+        ON u.user_id = e.user_id
+    WHERE e.event_type='engagement'
+      AND e.occurred_at >= '2014-04-28'
+      AND e.occurred_at < '2014-09-01'
+    GROUP BY 1,2
+)
+SELECT
+    tenure,
+    ROUND(
+        AVG(
+            CASE WHEN week < '2014-08-04'
+            THEN total_users END
+        ),
+        2
+    ) AS before_avg,
+ ROUND(
+        AVG(
+            CASE WHEN week >= '2014-08-04'
+            THEN total_users END
+        ),
+        2
+    ) AS after_avg,
+ROUND(
+100.0 *
+(
+    AVG(CASE WHEN week >= '2014-08-04' THEN total_users END)
+    -
+    AVG(CASE WHEN week < '2014-08-04' THEN total_users END)
+)
+/
+AVG(CASE WHEN week < '2014-08-04' THEN total_users END),
+1
+) AS pct_change
+FROM tenure_weekly
+GROUP BY tenure
+ORDER BY tenure;
+
+/*
+   Output of E5a: new 477.86 -> 550.75 (+15.3%); older 727.00 -> 674.75 (-7.2%)
+
+   Problem with this baseline: "before" averages ALL 14 weeks from 28 Apr to 28 Jul,
+   including the partial first week and the early weeks when the user base was much
+   smaller (weekly engaged users grew from about 1,050 to about 1,440 over that period).
+   So the before average is too low: "new +15%" is partly just growth, and "older -7%"
+   understates the fall. The other cuts use the 4 weeks before 4 Aug as the baseline.
+   Do not quote these percentages. The direction (older down, new up) is probably
+   right but is not yet measured on a fair baseline. Use E5b.
+*/
+
+-- E5b. Same query, baseline = the 4 weeks starting 7 Jul to 28 Jul (same as the other cuts)
+-- Only the two "before" conditions are changed.
+WITH tenure_weekly AS (
+    SELECT
+        DATE_TRUNC('week', e.occurred_at)::date AS week,
+        CASE
+            WHEN e.occurred_at <= u.created_at + INTERVAL '28 days'
+            THEN 'new'
+            ELSE 'older'
+        END AS tenure,
+        COUNT(DISTINCT e.user_id) AS total_users
+    FROM events e
+    JOIN users u
+        ON u.user_id = e.user_id
+    WHERE e.event_type='engagement'
+      AND e.occurred_at >= '2014-07-07'
+      AND e.occurred_at < '2014-09-01'
+    GROUP BY 1,2
+)
+SELECT
+    tenure,
+    ROUND(AVG(CASE WHEN week < '2014-08-04' THEN total_users END), 2) AS before_avg,
+    ROUND(AVG(CASE WHEN week >= '2014-08-04' THEN total_users END), 2) AS after_avg,
+    ROUND(
+        100.0 *
+        (AVG(CASE WHEN week >= '2014-08-04' THEN total_users END)
+         - AVG(CASE WHEN week < '2014-08-04' THEN total_users END))
+        / AVG(CASE WHEN week < '2014-08-04' THEN total_users END),
+        1
+    ) AS pct_change
+FROM tenure_weekly
+GROUP BY tenure
+ORDER BY tenure;
+/*
+   Output of E5b (average weekly engaged users, 4 weeks before -> 4 weeks after)
+     new    544.25 -> 550.75    +1.2%   (flat)
+     older  839.25 -> 674.75   -19.6%
+   Reading: the whole drop sits with older users. Older users lost about 165 users a week,
+   new users gained about 6, and the total fell about 157. New users (within 28 days of
+   signup) held steady, which fits the signup and activation results: acquisition is not
+   the problem. Because the tenure label belongs to the event, a user can appear in both
+   groups, so the two changes only roughly add up to the total.
+*/
+
+
 /* =============================================================================
    HOW MUCH EACH SEGMENT CONTRIBUTED (before -> after, avg weekly engaged users)
    Total: 1,376.5 -> 1,219.5 (-157, -11.4%)
@@ -167,6 +352,7 @@ ORDER BY company_id;
    - The size of the drop is about 11% (about 160 fewer engaged users a week) and it
      persists through August.
    - It is NOT concentrated in one country, language or large company.
+   - It IS concentrated among older users: older -19.6%, new users flat (+1.2%).
    - It IS concentrated on phone and tablet: computer users barely moved (-2.6%), while
      phone fell about 24% and tablet about 31%.
    - So "the decline is broad across devices" is not accurate. It is broad across countries
@@ -175,6 +361,11 @@ ORDER BY company_id;
      mobile, such as the email-to-app path, an app or mobile-web issue, or both.
      This is a hypothesis to test, not a conclusion.
 
-   NEXT QUERY TO TRY: break phone and tablet down by device model (iphone, nexus,
-   samsung galaxy, ...) to see whether the loss sits in one platform or model.
+   Phone models (E4): the big models all fall by roughly 18% to 35%, on iOS, Android and
+   Windows Phone alike, so the mobile drop is not isolated to one platform.
+   Tenure (E5b, fair 4-week baseline): older users 839 -> 675 (-19.6%), new users 544 -> 551
+   (+1.2%). The drop is entirely among users who signed up more than 28 days earlier.
+
+   NEXT: write the one-page memo (what happened, evidence ranked, what the data cannot tell me,
+   recommendation, how we would know it worked).
    ============================================================================= */

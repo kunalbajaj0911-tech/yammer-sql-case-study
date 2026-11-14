@@ -201,6 +201,7 @@ group by 1,2)s
 group by s.week;
 -- Result: it is more of a retention problem than an acquisition problem
 -- Newer users recovered but older ones were gone
+-- Fair before/after (see 05, E5b): older users -19.6%, new users +1.2% (flat).
 -- Something happened around 4 August and the days around it; everything changed after that
 -- Next check: run the same weekly analysis on signup_flow events to see whether new-user
 --             events recovered too (C5)
@@ -261,8 +262,7 @@ order by 1;
    - Event type: all engagement events fall, so it is broad, not one feature.
    - Device: concentrated on phone (-24%) and tablet (-31%); computer barely moved (-3%).
    - Country: all six top countries fall by similar percentages; not isolated to one.
-   - Tenure: older users did not come back; newer users recovered. Retention, not
-     acquisition.
+   - Tenure: older users fell about 20%; new users were flat. Retention, not acquisition.
    - Signup flow: did not fall, which supports the retention reading.
    - Email: digests and opens stable, clickthrough down.
    - Continues in 04_funnels_retention_timing.sql (email vs engagement, activation,

@@ -2,7 +2,7 @@
 
 An investigation in PostgreSQL of a fall in weekly engaged users, based on Mode Analytics' three-part Yammer SQL case study. The focus is on method: write hypotheses first, audit the data, confirm the drop is real, then segment to find who and what changed.
 
-> **Status: Part 1 in progress.** Data audit, drop validation, segmentation, email, activation, retention and day-of-week analysis are done. Still to come: a breakdown of the mobile drop by device model, the contribution by tenure group, and a one-page write-up with a recommendation. Parts 2 and 3 are not started.
+> **Status: Part 1 in progress.** Data audit, drop validation, segmentation, email, activation, retention and day-of-week analysis are done. Still to come: the one-page write-up with a recommendation. Parts 2 and 3 are not started.
 
 ## The question
 
@@ -37,11 +37,12 @@ Four tables from Mode's public Yammer tutorial dataset (fictional data modelled 
 | Is the drop real? | Yes. It shows up in the rolling 7-day metric, the calendar-week metric and daily users. Daily unique users stayed lower than July all through August (peaking near 400), with the decline beginning around 4 August. |
 | Size of the drop | Weekly engaged users fell from about 1,377 (average of the 4 weeks to 28 July) to about 1,220 (4 weeks from 4 August): about 11% lower, and it did not recover through August. |
 | Device | The drop is concentrated on mobile: phone -24% and tablet -31%, while computer barely moved (-3%, about normal weekly noise). Some users use several devices, so the segments overlap. |
-| Tenure | Older users did not return while newer users recovered, which points to a retention problem more than an acquisition problem. |
+| Phone models | The big phone models all fall by roughly 18% to 35%, across iOS, Android and Windows Phone, so the mobile drop is not isolated to one platform. |
+| Tenure | The whole drop is among older users (more than 28 days since signup): about -20%, while new users are flat (+1%). This points to a retention problem, not an acquisition problem. |
 | Signup flow | Only engagement events fell; signup events did not. |
 | Event type, country, language, company | All engagement events fall, so it is not one broken feature. All six top countries fall by similar percentages, almost every language falls, and the 10 largest companies account for only about 14% of the loss. No single country, language or large company explains it. |
 | Email | Digest sends and opens stay broadly stable while email clickthrough declines around the same time engagement falls. The share of engaged users who clicked an email also falls around the week of 4 August. This is an association, not shown to be a cause. |
-| Activation and retention | Weekly activation stays stable, which does not point to an acquisition problem. Retention weakens and lapsed users rise; whether that is enough to explain the drop is not yet established. |
+| Activation and retention | Weekly activation stays stable, which does not point to an acquisition problem. Week-to-week retention weakens (about 58% to 55%) and lapsed users rise; this accounts for about half of the drop. The other half is fewer users arriving who were not engaged the week before. |
 | Day of week | The decline shows on most weekdays, not one recurring day. |
 | A failed attempt | My first email-to-engagement join multiplied rows because both tables have many rows per user. It is kept in `04_...sql` with an explanation of the grain mismatch and how I rebuilt it. |
 
@@ -67,7 +68,7 @@ Each query has a comment giving the question it answers, what result would matte
 
 ## Next steps
 
-- [ ] Finish Part 1: phone and tablet by device model, contribution by tenure group, ranked conclusion, one-page memo (what the data cannot tell me, recommendation, how we would know it worked)
+- [ ] Finish Part 1: ranked conclusion and one-page memo (what the data cannot tell me, recommendation, how we would know it worked)
 - [ ] Part 2: understanding search (adoption, sessions, quality, recommendation)
 - [ ] Part 3: validating the A/B test (assignment checks, replication, decision)
 
