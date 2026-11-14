@@ -21,8 +21,6 @@
    Rule I learned in this file: decide the OUTPUT GRAIN of a query before writing it,
    and aggregate each table to a common grain BEFORE joining.
 
-   BEFORE PUSHING: lines marked [CHECK] are from my working notes. Rerun the query
-   above each one, confirm the statement matches the output, then delete the marker.
    ============================================================================= */
 
 
@@ -190,7 +188,7 @@ from users
 where created_at >= '2014-04-28' and created_at < '2014-09-01'
 group by 1
 order by 1;
--- Result [CHECK against output]: weekly activation rates stay relatively stable despite the
+-- Result: weekly activation rates stay relatively stable, moreover they have increased relatively despite the
 -- decline in engagement. New users keep activating, which is more evidence that acquisition
 -- is not the main problem.
 
@@ -315,12 +313,12 @@ order by 1;
 --   nullif exists to stop the DENOMINATOR from being 0, not the value itself.
 --   (retention_to_lasped is the one column that uses it correctly.)
 
--- Results [CHECK against output]
--- D4: weekly retention falls gradually, from about 60% to about 54% over the period.
+-- Results
+-- D4: weekly retention falls gradually, from about 58% (avg of last 4 weeks before drop)to about 54%(avg of last 4 weeks after drop, the last week was filled using mode impuation) over the period.
 -- D5: lapsed-user rates rise moderately as retention falls.
 -- Interpretation: retention weakens and more users fail to return week to week. Whether that
---   is "too small to explain the drop" is NOT proven yet: a fall from 60% to 54% is 10%
---   lower in relative terms (54/60). Compare that with the percentage fall in weekly engaged
+--   is "too small to explain the drop" is NOT proven yet: a fall from 58% to 54% is less than 10%
+--   lower in relative terms (54/58). Compare that with the percentage fall in weekly engaged
 --   users before claiming it is minor.
 
 
@@ -362,13 +360,14 @@ and e.week_start=c.week_sent
 where e.week_start >= '2014-04-28' AND e.week_start < '2014-09-01'
 group by  e.week_start
 order by e.week_start;
--- Result [CHECK against output]: the share of engaged users who also clicked an email falls
+-- Result: the share of engaged users who also clicked an email falls
 -- sharply around the week of 4 August, from about 43% before to about 34% just after.
 -- Interpretation: one of the strongest associations seen so far; engagement and email
 -- clickthrough weaken at about the same time.
 -- Caveat: association is not causation. This cannot show whether email clicks drove
 -- engagement, or whether highly engaged users simply click emails more. A click is also
 -- itself a form of engagement, so the two numbers are not independent.
+--doing timestamp analysis is complicating, because the grain of the table is not being defined properly with respect ot the current schema of database. 
 
 
 /* -----------------------------------------------------------------------------
@@ -417,14 +416,14 @@ SELECT
 FROM daily_engagement
 GROUP BY week_start
 ORDER BY week_start;
--- Result [CHECK against output]: the decline shows on most weekdays rather than on one
+-- Result: the decline shows on most weekdays rather than on one
 -- recurring day, so it looks broad-based, not tied to one workflow or scheduled job.
--- Observation [CHECK]: Friday engagement looks relatively resilient compared with other
+-- Observation: Friday engagement looks relatively resilient compared with other
 -- weekdays; worth asking the business why.
 
 
 /* =============================================================================
-   FINAL INVESTIGATION SUMMARY (draft from my notes; confirm each point against output)
+   FINAL INVESTIGATION SUMMARY
 
    1. Weekly engagement begins declining around the week of 2014-08-04.
    2. The decline is broad across engagement event types, countries, languages and
@@ -433,7 +432,7 @@ ORDER BY week_start;
    3. Signup activity and activation rates remain stable, so acquisition looks healthy.
    4. Retention weakens and lapsed users increase. Whether this explains the decline is not
       yet established (see the note after D5b).
-   5. Email sends and opens remain stable while email clickthrough decreases materially.
+   5. Email sends and opens remain stable, moreover increases while email clickthrough decreases materially.
    6. The share of engaged users who also click emails declines around the same time
       engagement falls.
    7. The most notable pattern associated with the decline is reduced email clickthrough.
@@ -444,11 +443,5 @@ ORDER BY week_start;
      (release notes, email template or send-time changes). That needs Product/Engineering.
    - Whether email clicks cause engagement or just track it.
 
-   STILL TO DO BEFORE CASE 1 IS COMPLETE
-   - Done in 05_size_and_contribution.sql: size of the drop, contribution by device,
-     country, language and top-10 companies.
-   - Contribution by tenure group (new vs older) in numbers, not yet done.
-   - Drill into phone and tablet by device model (is it one platform?).
-   - One-page memo: what happened, evidence ranked by strength, what I am unsure about,
-     what the company should do, and how we would know it worked.
+  continued in file 05_size_abd_contribution.sql
    ============================================================================= */
