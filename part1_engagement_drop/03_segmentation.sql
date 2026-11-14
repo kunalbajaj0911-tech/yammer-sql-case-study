@@ -55,6 +55,11 @@ GROUP BY 1
 ORDER BY 1;
 
 
+-- Result [CHECK against output]: the decline is not isolated to one engagement activity.
+-- Login, inbox, messaging, likes and searches all fall around early August, which points
+-- to a broad drop in platform usage rather than one broken feature.
+
+
 /* -----------------------------------------------------------------------------
    C2. WHO: device type (computer / phone / tablet)
    Hypothesis : if phone and tablet fell but computer did not, suspect a mobile
@@ -77,7 +82,9 @@ FROM events_with_device_type
 WHERE event_type='engagement'
 GROUP BY 1
 ORDER BY 1;
--- Result: engagement fell, but relatively it fell more across phone and tablet than computer users
+-- Result: the drop is concentrated on phone and tablet. Average weekly users, 4 weeks before
+-- (7 to 28 Jul) vs 4 weeks after (4 to 25 Aug): computer 908 -> 885 (-2.6%, about normal
+-- weekly noise), phone 590 -> 450 (-23.8%), tablet 238 -> 163 (-31.4%). See 05 for the table.
 
 -- C2b. Why the device columns do not add up to total_users
 -- In the previous query, total_users is smaller than the sum of the three device
@@ -158,6 +165,13 @@ GROUP BY 1
 ORDER BY 1;
 
 
+-- Result: engagement falls in all six countries, not just one. Percent change, 4 weeks before
+-- vs 4 weeks after: France -22%, Germany -14%, US -11%, Italy -10%, UK -9%, Japan -9%
+-- (total -11%). The US has the largest absolute fall (-44 users a week) but also the largest
+-- user base (28% of users, 28% of the loss), so no country is out of proportion.
+-- France falls most in percent but on a small base. See 05 for the table.
+
+
 /* -----------------------------------------------------------------------------
    C4. WHO: tenure (new vs older users)
    Definition : an engagement event counts as "new" if it happened within 28 days of
@@ -235,17 +249,25 @@ from emails
 where occurred_at<'2014-09-01' and occurred_at>='2014-04-28'
 group by 1
 order by 1;
--- Result: users are receiving emails, opening emails, but the clickthrough event isn't happening, i.e the users are not coming back to the platform.
--- users not coming back despite reading the email could show either user is not perceiving enough value from the emails, to return to the application or there is a recording issue in tracking email clickthrough  
+-- Result [CHECK against output]: weekly digest sends and email opens stay broadly stable,
+-- but email clickthrough declines materially from about the same time engagement falls.
+-- Users keep receiving and opening emails but are less likely to click back into Yammer.
+-- Next: does the click drop line up with the engagement drop for the same users? See 04.
 
 
 /* =============================================================================
-   SUMMARY SO FAR (update as the investigation continues)
+   SUMMARY OF THIS FILE
    - The drop is real and starts around 4 August 2014 (see 02_was_the_drop_real.sql).
-   - Device: engagement fell relatively more on phone and tablet than on computer.
+   - Event type: all engagement events fall, so it is broad, not one feature.
+   - Device: concentrated on phone (-24%) and tablet (-31%); computer barely moved (-3%).
+   - Country: all six top countries fall by similar percentages; not isolated to one.
    - Tenure: older users did not come back; newer users recovered. Retention, not
      acquisition.
    - Signup flow: did not fall, which supports the retention reading.
-   - Still open: email result (C6), contribution of each segment to the total change,
-     and a ranked conclusion with confidence.
+   - Email: digests and opens stable, clickthrough down.
+   - Continues in 04_funnels_retention_timing.sql (email vs engagement, activation,
+     retention, lapsed users, day-of-week pattern).
+
+   BEFORE PUSHING: lines marked [CHECK] are from my working notes. Rerun the query
+   above each one, confirm the statement matches the output, then delete the marker.
    ============================================================================= */
