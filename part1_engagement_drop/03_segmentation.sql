@@ -55,8 +55,8 @@ GROUP BY 1
 ORDER BY 1;
 
 
--- Result [CHECK against output]: the decline is not isolated to one engagement activity.
--- Login, inbox, messaging, likes and searches all fall around early August, which points
+-- Result: the decline is not isolated to one engagement activity.
+-- Login, inbox, messaging, likes and searches all fall around early August and the fall is continued for the entire month of august, which points
 -- to a broad drop in platform usage rather than one broken feature.
 
 
@@ -250,7 +250,7 @@ from emails
 where occurred_at<'2014-09-01' and occurred_at>='2014-04-28'
 group by 1
 order by 1;
--- Result [CHECK against output]: weekly digest sends and email opens stay broadly stable,
+-- Result: weekly digest sends and email opens stay broadly stable,moreover they have increased over time,
 -- but email clickthrough declines materially from about the same time engagement falls.
 -- Users keep receiving and opening emails but are less likely to click back into Yammer.
 -- Next: does the click drop line up with the engagement drop for the same users? See 04.
@@ -267,7 +267,4 @@ order by 1;
    - Email: digests and opens stable, clickthrough down.
    - Continues in 04_funnels_retention_timing.sql (email vs engagement, activation,
      retention, lapsed users, day-of-week pattern).
-
-   BEFORE PUSHING: lines marked [CHECK] are from my working notes. Rerun the query
-   above each one, confirm the statement matches the output, then delete the marker.
    ============================================================================= */
