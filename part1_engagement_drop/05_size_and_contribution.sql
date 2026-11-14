@@ -7,16 +7,13 @@
               language, company, phone-model and tenure cuts, then summarises all of them.
    DIALECT  : PostgreSQL
 
-   HOW "BEFORE" AND "AFTER" ARE DEFINED (my choice, state it in the write-up)
+   HOW "BEFORE" AND "AFTER" ARE DEFINED (my choice)
      Before = average weekly engaged users over the 4 weeks starting 7, 14, 21, 28 July
      After  = average weekly engaged users over the 4 weeks starting 4, 11, 18, 25 August
      Weekly noise: before the drop, total weekly engaged users typically moved by about
      3% from one week to the next, so changes much larger than that are not noise.
    Averages and percentages below were calculated outside SQL from the query outputs.
 
-   NOTE: the week starting 2014-04-28 (701 users vs about 1,050 the week after) looks like
-   a partial week. Check min(occurred_at) from 01_data_audit.sql and ignore that week
-   when judging trends.
    ============================================================================= */
 
 
@@ -32,7 +29,7 @@ group by 2
 order by 2;
 
 /*
-   Result (from the output)
+   Result 
      Before (avg of 7 Jul to 28 Jul weeks) : 1,376.5 engaged users per week
      After  (avg of 4 Aug to 25 Aug weeks) : 1,219.5 engaged users per week
      Change                                : -157 users per week, -11.4%
@@ -63,8 +60,8 @@ ORDER BY 2,1;
 
 /*
    Result: before -> after (avg weekly engaged users), share of total loss
-     english    706 -> 617   -12.6%   57% of the loss (51% of users)
-     french     116 ->  92   -20.5%   15% of the loss ( 8% of users)
+     english    706 -> 617   -12.6%(relative loss of language)   57% of the total loss (51% of users)
+     french     116 ->  92   -20.5%   15% of the loss             ( 8% of users)
      arabic      53 ->  43   -19.0%    6%
      indian      40 ->  32   -18.9%    5%
      german      81 ->  74    -9.5%    5%
@@ -273,13 +270,13 @@ ORDER BY tenure;
 
 /*
    Output of E5a: new 477.86 -> 550.75 (+15.3%); older 727.00 -> 674.75 (-7.2%)
-
+   -- we can do better. 
    Problem with this baseline: "before" averages ALL 14 weeks from 28 Apr to 28 Jul,
    including the partial first week and the early weeks when the user base was much
    smaller (weekly engaged users grew from about 1,050 to about 1,440 over that period).
    So the before average is too low: "new +15%" is partly just growth, and "older -7%"
    understates the fall. The other cuts use the 4 weeks before 4 Aug as the baseline.
-   Do not quote these percentages. The direction (older down, new up) is probably
+   so we do not quote these percentages. The direction (older down, new up) is probably
    right but is not yet measured on a fair baseline. Use E5b.
 */
 
@@ -320,7 +317,7 @@ ORDER BY tenure;
    Output of E5b (average weekly engaged users, 4 weeks before -> 4 weeks after)
      new    544.25 -> 550.75    +1.2%   (flat)
      older  839.25 -> 674.75   -19.6%
-   Reading: the whole drop sits with older users. Older users lost about 165 users a week,
+   Result : the whole drop sits with older users. Older users lost about 165 users a week,
    new users gained about 6, and the total fell about 157. New users (within 28 days of
    signup) held steady, which fits the signup and activation results: acquisition is not
    the problem. Because the tenure label belongs to the event, a user can appear in both
@@ -365,7 +362,6 @@ ORDER BY tenure;
    Windows Phone alike, so the mobile drop is not isolated to one platform.
    Tenure (E5b, fair 4-week baseline): older users 839 -> 675 (-19.6%), new users 544 -> 551
    (+1.2%). The drop is entirely among users who signed up more than 28 days earlier.
+   All indicating to a retention problem. Again, this is a hypothesis we need more business context to implement causality. 
 
-   NEXT: write the one-page memo (what happened, evidence ranked, what the data cannot tell me,
-   recommendation, how we would know it worked).
    ============================================================================= */
